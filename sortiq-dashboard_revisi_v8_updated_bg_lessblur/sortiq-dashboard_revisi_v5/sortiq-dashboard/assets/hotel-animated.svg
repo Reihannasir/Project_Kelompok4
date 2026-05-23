@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Animated hotel background">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1a33"/>
+      <stop offset="55%" stop-color="#1b2d56"/>
+      <stop offset="100%" stop-color="#40214c"/>
+    </linearGradient>
+    <linearGradient id="floorGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(255,180,120,0)"/>
+      <stop offset="45%" stop-color="rgba(255,180,120,0.12)"/>
+      <stop offset="100%" stop-color="rgba(255,180,120,0)"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+  </defs>
+
+  <style>
+    /* Cloud drift */
+    @keyframes cloudMoveA { 0% { transform: translateX(-120px);} 100% { transform: translateX(220px);} }
+    @keyframes cloudMoveB { 0% { transform: translateX(160px);} 100% { transform: translateX(-200px);} }
+
+    /* Window flicker */
+    @keyframes flicker { 0%, 100% { opacity: .75; } 40% { opacity: .25; } 55% { opacity: .95; } 70% { opacity: .55; } }
+    .w1 { animation: flicker 3.6s ease-in-out infinite; }
+    .w2 { animation: flicker 4.3s ease-in-out infinite; }
+    .w3 { animation: flicker 5.1s ease-in-out infinite; }
+    .w4 { animation: flicker 6.2s ease-in-out infinite; }
+
+    /* Subtle haze */
+    @keyframes haze { 0% { opacity: .25; transform: translateY(0);} 100% { opacity: .4; transform: translateY(16px);} }
+    .haze { animation: haze 8.5s ease-in-out infinite alternate; }
+
+    /* Hotel sign glow */
+    @keyframes signPulse { 0%, 100% { opacity: .92; } 45% { opacity: .55; } 70% { opacity: 1; } }
+    .hotel-sign { animation: signPulse 3.8s ease-in-out infinite; }
+  </style>
+
+  <!-- Sky -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+
+  <!-- Soft bokeh lights -->
+  <g filter="url(#soft)" opacity="0.55">
+    <circle cx="1220" cy="170" r="42" fill="rgba(255,230,180,0.85)"/>
+    <circle cx="1290" cy="220" r="26" fill="rgba(255,200,160,0.75)"/>
+    <circle cx="1370" cy="170" r="18" fill="rgba(255,210,190,0.65)"/>
+    <circle cx="300" cy="210" r="34" fill="rgba(255,190,150,0.55)"/>
+    <circle cx="230" cy="260" r="20" fill="rgba(255,220,180,0.55)"/>
+  </g>
+
+  <!-- Clouds -->
+  <g opacity="0.22" filter="url(#soft)">
+    <g style="animation: cloudMoveA 26s linear infinite;">
+      <ellipse cx="330" cy="150" rx="140" ry="48" fill="#c7d2fe"/>
+      <ellipse cx="430" cy="140" rx="110" ry="40" fill="#c7d2fe"/>
+      <ellipse cx="245" cy="150" rx="85" ry="32" fill="#c7d2fe"/>
+    </g>
+    <g style="animation: cloudMoveB 34s linear infinite;">
+      <ellipse cx="1240" cy="235" rx="160" ry="55" fill="#e0e7ff"/>
+      <ellipse cx="1365" cy="230" rx="120" ry="44" fill="#e0e7ff"/>
+      <ellipse cx="1130" cy="242" rx="95" ry="34" fill="#e0e7ff"/>
+    </g>
+  </g>
+
+  <!-- Ground gradient -->
+  <rect y="640" width="1600" height="260" fill="rgba(0,0,0,0.35)"/>
+  <rect y="640" width="1600" height="260" fill="url(#floorGlow)" opacity="0.85"/>
+
+  <!-- Hotel silhouette -->
+  <g filter="url(#shadow)">
+    <!-- Main building -->
+    <path d="M450 640V250c0-12 10-22 22-22h656c12 0 22 10 22 22v390z" fill="#0a1326" opacity="0.95"/>
+    <!-- Side wings -->
+    <path d="M330 640V340c0-12 10-22 22-22h110c12 0 22 10 22 22v300z" fill="#0b162d" opacity="0.95"/>
+    <path d="M1138 640V340c0-12 10-22 22-22h118c12 0 22 10 22 22v300z" fill="#0b162d" opacity="0.95"/>
+
+    <!-- Roof line -->
+    <rect x="450" y="230" width="700" height="16" rx="8" fill="rgba(255,180,120,0.12)"/>
+
+    <!-- HOTEL sign (biar jelas ini hotel) -->
+    <g class="hotel-sign">
+      <rect x="740" y="190" width="320" height="72" rx="18" fill="rgba(10,19,38,0.92)" stroke="rgba(255,215,160,0.35)" stroke-width="2"/>
+      <!-- glow -->
+      <rect x="748" y="198" width="304" height="56" rx="14" fill="rgba(255,205,150,0.08)"/>
+      <text x="900" y="238" text-anchor="middle"
+            font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif"
+            font-size="44" font-weight="800" letter-spacing="6"
+            fill="rgba(255,225,180,0.96)">
+        HOTEL
+      </text>
+    </g>
+
+    <!-- Entrance -->
+    <path d="M680 640V520c0-18 14-32 32-32h176c18 0 32 14 32 32v120z" fill="#0b1b33"/>
+    <rect x="700" y="520" width="236" height="110" rx="18" fill="rgba(255,180,120,0.08)"/>
+    <rect x="812" y="520" width="12" height="120" fill="rgba(255,200,160,0.10)"/>
+  </g>
+
+  <!-- Windows -->
+  <g transform="translate(0,0)">
+    <!-- Window grid helper: repeated rectangles with varying animation classes -->
+    <g fill="rgba(255,215,160,0.95)">
+      <!-- left wing windows -->
+      <g opacity="0.85">
+        <rect class="w1" x="360" y="372" width="22" height="30" rx="4"/>
+        <rect class="w3" x="398" y="372" width="22" height="30" rx="4"/>
+        <rect class="w2" x="360" y="420" width="22" height="30" rx="4"/>
+        <rect class="w4" x="398" y="420" width="22" height="30" rx="4"/>
+        <rect class="w2" x="360" y="468" width="22" height="30" rx="4"/>
+        <rect class="w1" x="398" y="468" width="22" height="30" rx="4"/>
+        <rect class="w3" x="360" y="516" width="22" height="30" rx="4"/>
+        <rect class="w4" x="398" y="516" width="22" height="30" rx="4"/>
+      </g>
+
+      <!-- main building windows (rows) -->
+      <g opacity="0.9">
+        <!-- row 1 -->
+        <rect class="w1" x="520" y="290" width="26" height="36" rx="5"/>
+        <rect class="w2" x="566" y="290" width="26" height="36" rx="5"/>
+        <rect class="w3" x="612" y="290" width="26" height="36" rx="5"/>
+        <rect class="w4" x="658" y="290" width="26" height="36" rx="5"/>
+        <rect class="w2" x="704" y="290" width="26" height="36" rx="5"/>
+        <rect class="w1" x="750" y="290" width="26" height="36" rx="5"/>
+        <rect class="w3" x="796" y="290" width="26" height="36" rx="5"/>
+        <rect class="w4" x="842" y="290" width="26" height="36" rx="5"/>
+        <rect class="w2" x="888" y="290" width="26" height="36" rx="5"/>
+        <rect class="w1" x="934" y="290" width="26" height="36" rx="5"/>
+
+        <!-- row 2 -->
+        <rect class="w2" x="520" y="350" width="26" height="36" rx="5"/>
+        <rect class="w4" x="566" y="350" width="26" height="36" rx="5"/>
+        <rect class="w1" x="612" y="350" width="26" height="36" rx="5"/>
+        <rect class="w3" x="658" y="350" width="26" height="36" rx="5"/>
+        <rect class="w4" x="704" y="350" width="26" height="36" rx="5"/>
+        <rect class="w2" x="750" y="350" width="26" height="36" rx="5"/>
+        <rect class="w1" x="796" y="350" width="26" height="36" rx="5"/>
+        <rect class="w3" x="842" y="350" width="26" height="36" rx="5"/>
+        <rect class="w4" x="888" y="350" width="26" height="36" rx="5"/>
+        <rect class="w2" x="934" y="350" width="26" height="36" rx="5"/>
+
+        <!-- row 3 -->
+        <rect class="w3" x="520" y="410" width="26" height="36" rx="5"/>
+        <rect class="w1" x="566" y="410" width="26" height="36" rx="5"/>
+        <rect class="w2" x="612" y="410" width="26" height="36" rx="5"/>
+        <rect class="w4" x="658" y="410" width="26" height="36" rx="5"/>
+        <rect class="w1" x="704" y="410" width="26" height="36" rx="5"/>
+        <rect class="w3" x="750" y="410" width="26" height="36" rx="5"/>
+        <rect class="w2" x="796" y="410" width="26" height="36" rx="5"/>
+        <rect class="w4" x="842" y="410" width="26" height="36" rx="5"/>
+        <rect class="w1" x="888" y="410" width="26" height="36" rx="5"/>
+        <rect class="w3" x="934" y="410" width="26" height="36" rx="5"/>
+
+        <!-- row 4 -->
+        <rect class="w4" x="520" y="470" width="26" height="36" rx="5"/>
+        <rect class="w2" x="566" y="470" width="26" height="36" rx="5"/>
+        <rect class="w3" x="612" y="470" width="26" height="36" rx="5"/>
+        <rect class="w1" x="658" y="470" width="26" height="36" rx="5"/>
+        <rect class="w2" x="704" y="470" width="26" height="36" rx="5"/>
+        <rect class="w4" x="750" y="470" width="26" height="36" rx="5"/>
+        <rect class="w3" x="796" y="470" width="26" height="36" rx="5"/>
+        <rect class="w1" x="842" y="470" width="26" height="36" rx="5"/>
+        <rect class="w2" x="888" y="470" width="26" height="36" rx="5"/>
+        <rect class="w4" x="934" y="470" width="26" height="36" rx="5"/>
+      </g>
+
+      <!-- right wing windows -->
+      <g opacity="0.85">
+        <rect class="w2" x="1180" y="372" width="22" height="30" rx="4"/>
+        <rect class="w4" x="1218" y="372" width="22" height="30" rx="4"/>
+        <rect class="w1" x="1180" y="420" width="22" height="30" rx="4"/>
+        <rect class="w3" x="1218" y="420" width="22" height="30" rx="4"/>
+        <rect class="w4" x="1180" y="468" width="22" height="30" rx="4"/>
+        <rect class="w2" x="1218" y="468" width="22" height="30" rx="4"/>
+        <rect class="w1" x="1180" y="516" width="22" height="30" rx="4"/>
+        <rect class="w3" x="1218" y="516" width="22" height="30" rx="4"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Foreground haze -->
+  <g class="haze" filter="url(#soft)">
+    <path d="M-40 680 C 180 640, 360 760, 560 720 C 760 680, 980 780, 1220 740 C 1400 712, 1520 760, 1680 740 L 1680 960 L -40 960 Z"
+          fill="rgba(255,210,170,0.10)"/>
+  </g>
+</svg>

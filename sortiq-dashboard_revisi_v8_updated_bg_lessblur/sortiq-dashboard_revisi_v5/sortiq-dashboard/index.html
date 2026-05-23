@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SortIQ Dashboard — Monitoring Smart Waste Sorting</title>
+    <meta name="description" content="Dashboard monitoring SortIQ: real-time, historis, status tempat sampah, dan sistem alert." />
+
+    <!-- Chart.js (tanpa build step) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      // Terapkan tema lebih awal agar tidak "flash" (disimpan di localStorage)
+      (function () {
+        try {
+          var raw = localStorage.getItem("sortiq_theme");
+          if (!raw) return;
+          var theme = JSON.parse(raw);
+          if (theme === "day" || theme === "night") document.documentElement.dataset.theme = theme;
+        } catch {}
+      })();
+    </script>
+
+    <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .webcam-section { grid-template-columns: 1fr; }
+    .webcam-card .card__body { padding: 0; }
+    .webcam-body { display: flex; flex-direction: column; }
+    .webcam-wrap {
+      position: relative; background: #000;
+      min-height: 360px; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+    }
+    #webcamFeed { width: 100%; max-height: 420px; object-fit: contain; display: block; }
+    .webcam-offline {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; gap: 10px; padding: 40px; text-align: center;
+      color: var(--text-muted, #888);
+    }
+    .webcam-offline__icon { font-size: 2.5rem; }
+    .webcam-offline__title { font-weight: 600; font-size: .95rem; }
+    .webcam-offline__sub { font-size: .78rem; line-height: 1.5; }
+    .webcam-offline code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 4px; font-size: .75rem; }
+    .webcam-detections {
+      padding: 14px 20px; border-top: 1px solid var(--border, #222);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .webcam-det-label { font-size: .72rem; color: var(--text-muted, #888); white-space: nowrap; font-family: monospace; }
+    .webcam-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .webcam-chip { padding: 4px 12px; border-radius: 8px; font-size: .75rem; font-weight: 600; border: 1px solid; animation: chipIn .2s ease; }
+    @keyframes chipIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+    .webcam-chip.organik { color:#22c55e; background:rgba(34,197,94,.1); border-color:rgba(34,197,94,.3); }
+    .webcam-chip.logam   { color:#3b82f6; background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); }
+    .webcam-chip.tekstil { color:#7c3aed; background:rgba(124,58,237,.1); border-color:rgba(124,58,237,.3); }
+    .webcam-chip.other   { color:#888; background:rgba(128,128,128,.1); border-color:rgba(128,128,128,.3); }
+    .webcam-status { display: flex; align-items: center; gap: 6px; font-size: .72rem; font-family: monospace; color: var(--text-muted, #888); }
+    .webcam-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: wdpulse 1.4s ease-in-out infinite; }
+    .webcam-dot.is-offline { background: #ef4444; animation: none; }
+    @keyframes wdpulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+  </head>
+  <body>
+    <!-- LOGIN VIEW (digabung) -->
+    <!-- Default tampilkan login dulu agar tidak blank kalau JS/CDN bermasalah -->
+    <div class="auth-wrap" id="loginView" style="display:grid;">
+      <div class="auth-bg" aria-hidden="true">
+        <img class="auth-bg__img" src="./assets/login-bg-hotel.jpg" alt="" />
+      </div>
+      <section class="card auth-card">
+        <div class="auth-head">
+          <div class="auth-logo" aria-hidden="true">SI</div>
+          <div>
+            <h1 class="auth-title">Login Admin</h1>
+            <div class="auth-sub">SortIQ Dashboard — Farselion Hotel</div>
+          </div>
+          <div class="auth-actions">
+            <button class="btn btn--ghost" id="btnThemeToggleLogin" type="button" title="Ubah mode tampilan">
+              Mode: Light
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <form class="form" id="loginForm">
+          <label class="field">
+            <span class="field__label">Username</span>
+            <input class="field__input" id="username" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Password</span>
+            <input class="field__input" id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="btn btn--primary" type="submit">Masuk</button>
+        </form>
+
+        <div class="auth-error" id="errBox" role="alert"></div>
+
+      </section>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div class="app" id="dashboardView" style="display:none;">
+      <!-- APPBAR (tanpa sidebar kiri) -->
+      <header class="appbar" aria-label="Header aplikasi">
+        <div class="appbar__left">
+          <div class="brand brand--compact">
+            <div class="brand__logo" aria-hidden="true">SI</div>
+            <div class="brand__text">
+              <div class="brand__name">SortIQ</div>
+              <div class="brand__sub">Farselion Hotel</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigasi lengkap disembunyikan saat di Beranda -->
+        <nav class="nav nav--top" id="appNav" aria-label="Navigasi dashboard">
+          <button class="nav__item" data-view="home">
+            <span class="nav__dot" aria-hidden="true"></span> Beranda
+          </button>
+          <button class="nav__item" data-view="dashboard">
+            <span class="nav__dot" aria-hidden="true"></span> Monitoring
+          </button>
+          <button class="nav__item" data-view="riwayat">
+            <span class="nav__dot" aria-hidden="true"></span> Riwayat
+          </button>
+          <button class="nav__item" data-view="pengaturan">
+            <span class="nav__dot" aria-hidden="true"></span> Pengaturan
+          </button>
+        </nav>
+
+        <div class="appbar__right">
+          <div class="conn-inline" aria-label="Status koneksi">
+            <div class="conn__badge" id="connBadge" data-state="ok">MQTT: Online</div>
+            <div class="conn-inline__meta">
+              <span class="muted">Last update</span>
+              <span id="lastUpdate">—</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar__left">
+            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            <div class="page-subtitle" id="pageSubtitle">
+              Monitoring real-time pemilahan limbah (organik, logam, tekstil)
+            </div>
+          </div>
+          <div class="topbar__right">
+            <div class="pill">
+              <span class="pill__label">Waktu</span>
+              <span class="pill__value" id="clock">—</span>
+            </div>
+            <button class="btn btn--ghost" id="btnThemeToggle" type="button" title="Ubah mode tampilan">
+              Mode: Light
+            </button>
+            <button class="btn btn--ghost" id="btnExport" type="button" title="Export CSV (simulasi)">
+              Export CSV
+            </button>
+          <button class="btn btn--ghost" id="btnLogout" type="button" title="Keluar">
+            Logout
+          </button>
+          </div>
+        </header>
+
+        <!-- VIEW: HOME / LANDING SETELAH LOGIN -->
+        <section class="view is-active" id="view-home" data-view="home" aria-label="Beranda">
+          <section class="home-hero card">
+            <div class="card__head">
+              <div>
+                <div class="card__title">Selamat datang</div>
+                <div class="card__subtitle">Pilih fitur untuk membuka tampilan lengkap.</div>
+              </div>
+            </div>
+            <div class="card__body">
+              <div class="home-grid" role="list">
+                <button class="home-tile home-tile--primary" data-quick-view="dashboard" type="button" role="listitem">
+                  <div class="home-tile__title">Monitoring Real-time</div>
+                  <div class="home-tile__desc">KPI, grafik, status bin, alert, dan log event terbaru.</div>
+                </button>
+                <button class="home-tile" data-quick-view="riwayat" type="button" role="listitem">
+                  <div class="home-tile__title">Riwayat</div>
+                  <div class="home-tile__desc">Filter historis 7/14/30 hari untuk analisis.</div>
+                </button>
+                <button class="home-tile" data-quick-view="pengaturan" type="button" role="listitem">
+                  <div class="home-tile__title">Pengaturan</div>
+                  <div class="home-tile__desc">Atur ambang kapasitas, gas, dan target harian.</div>
+                </button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- VIEW: DASHBOARD -->
+        <section class="view" id="view-dashboard" data-view="dashboard">
+          <!-- ── WEBCAM PREVIEW ── -->
+          <section class="grid webcam-section" aria-label="Live Detection">
+            <article class="card webcam-card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">📷 Live Detection — Webcam</div>
+                  <div class="card__subtitle">Real-time YOLO waste detection feed</div>
+                </div>
+                <div class="card__actions">
+                  <span class="webcam-status" id="webcamStatus">
+                    <span class="webcam-dot" id="webcamDot"></span>
+                    <span id="webcamStatusText">Menghubungkan...</span>
+                  </span>
+                </div>
+              </div>
+              <div class="card__body webcam-body">
+                <div class="webcam-wrap">
+                  <img
+                    id="webcamFeed"
+                    src="http://127.0.0.1:5000/video_feed"
+                    alt="Webcam feed"
+                    onerror="document.getElementById('webcamOffline').style.display='flex'; this.style.display='none'; document.getElementById('webcamDot').classList.add('is-offline'); document.getElementById('webcamStatusText').textContent='Offline';"
+                    onload="document.getElementById('webcamOffline').style.display='none'; this.style.display='block'; document.getElementById('webcamDot').classList.remove('is-offline'); document.getElementById('webcamStatusText').textContent='Live';"
+                  />
+                  <div class="webcam-offline" id="webcamOffline">
+                    <div class="webcam-offline__icon">📵</div>
+                    <div class="webcam-offline__title">Kamera tidak tersedia</div>
+                    <div class="webcam-offline__sub">Pastikan <code>waste_detector.py</code> sudah berjalan di localhost:5000</div>
+                    <button class="btn btn--ghost" onclick="document.getElementById('webcamFeed').src='http://localhost:5000/video_feed?t='+Date.now(); document.getElementById('webcamOffline').style.display='none';">
+                      Coba Reconnect
+                    </button>
+                  </div>
+                </div>
+                <div class="webcam-detections" id="webcamDetections">
+                  <div class="webcam-det-label">Terdeteksi sekarang:</div>
+                  <div class="webcam-chips" id="webcamChips">
+                    <span class="muted" style="font-size:.75rem">Menunggu data...</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="grid kpis" aria-label="Ringkasan KPI">
+            <article class="card kpi">
+              <div class="kpi__label">Total (kg) — hari ini</div>
+              <div class="kpi__value" id="kpiTotalKg">0.0</div>
+              <div class="kpi__meta"><span class="muted">Target</span> <span id="dailyTargetLabel">100</span> kg</div>
+            </article>
+            <article class="card kpi">
+              <div class="kpi__label">Jumlah event — hari ini</div>
+              <div class="kpi__value" id="kpiTotalEvents">0</div>
+              <div class="kpi__meta"><span class="muted">Sumber</span> ESP32 (MQTT)</div>
+            </article>
+            <article class="card kpi">
+              <div class="kpi__label">Tempat hampir/penuh</div>
+              <div class="kpi__value" id="kpiBinsAttention">0</div>
+              <div class="kpi__meta"><span class="muted">Status</span> perlu tindakan</div>
+            </article>
+            <article class="card kpi">
+              <div class="kpi__label">Alert aktif</div>
+              <div class="kpi__value" id="kpiAlerts">0</div>
+              <div class="kpi__meta"><span class="muted">Prioritas</span> high/medium</div>
+            </article>
+          </section>
+
+          <section class="grid charts" aria-label="Grafik">
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Grafik jumlah sampah (kg) — per kategori</div>
+                  <div class="card__subtitle">Organik, Logam, Tekstil (akumulasi hari ini)</div>
+                </div>
+              </div>
+              <div class="card__body">
+                <canvas id="chartByCategory" height="140"></canvas>
+              </div>
+            </article>
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Trend 7 hari (kg)</div>
+                  <div class="card__subtitle">Untuk kebutuhan historical data</div>
+                </div>
+              </div>
+              <div class="card__body">
+                <canvas id="chart7d" height="140"></canvas>
+              </div>
+            </article>
+          </section>
+
+          <section class="grid split" aria-label="Status & Alert">
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Status tempat sampah</div>
+                  <div class="card__subtitle">Kapasitas berdasarkan sensor ultrasonic</div>
+                </div>
+                <div class="card__actions">
+                  <button class="btn btn--ghost" id="btnResetBins" type="button">Reset (simulasi)</button>
+                </div>
+              </div>
+              <div class="card__body">
+                <div class="bins" id="binsContainer" aria-label="Daftar tempat sampah per kategori"></div>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Alert system</div>
+                  <div class="card__subtitle">Penuh / hampir penuh / gas meningkat (opsional)</div>
+                </div>
+                <div class="card__actions">
+                  <button class="btn btn--ghost" id="btnAckAll" type="button">Tandai semua</button>
+                </div>
+              </div>
+              <div class="card__body">
+                <div class="alerts" id="alertsContainer" aria-label="Daftar alert aktif">
+                  <div class="empty muted" id="alertsEmpty">Belum ada alert.</div>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="card" aria-label="Log event real-time">
+            <div class="card__head">
+              <div>
+                <div class="card__title">Monitoring real-time — event terbaru</div>
+                <div class="card__subtitle">Log event terbaru dari perangkat (simulasi)</div>
+              </div>
+              <div class="card__actions">
+                <button class="btn btn--ghost" id="btnPause" type="button">Pause</button>
+              </div>
+            </div>
+            <div class="card__body">
+              <div class="table-wrap">
+                <table class="table" role="table">
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>Jenis</th>
+                      <th>Berat (kg)</th>
+                      <th>Kapasitas (%)</th>
+                      <th>Status</th>
+                      <th>Gas (ppm)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="eventsTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- VIEW: RIWAYAT -->
+        <section class="view" id="view-riwayat" data-view="riwayat" aria-label="Riwayat data">
+          <section class="grid split">
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Filter riwayat</div>
+                  <div class="card__subtitle">Contoh kebutuhan untuk query data historis</div>
+                </div>
+              </div>
+              <div class="card__body">
+                <form class="form" id="historyForm">
+                  <label class="field">
+                    <span class="field__label">Rentang hari</span>
+                    <select class="field__input" id="historyRange">
+                      <option value="7">7 hari</option>
+                      <option value="14">14 hari</option>
+                      <option value="30" selected>30 hari</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Kategori</span>
+                    <select class="field__input" id="historyCategory">
+                      <option value="all" selected>Semua</option>
+                      <option value="organik">Organik</option>
+                      <option value="logam">Logam</option>
+                      <option value="tekstil">Tekstil</option>
+                    </select>
+                  </label>
+                  <button class="btn btn--primary" type="submit">Terapkan</button>
+                </form>
+              </div>
+            </article>
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <div class="card__title">Ringkasan riwayat</div>
+                  <div class="card__subtitle">Jumlah kg & event (hasil filter)</div>
+                </div>
+              </div>
+              <div class="card__body">
+                <div class="history-kpis">
+                  <div class="history-kpi">
+                    <div class="muted">Total (kg)</div>
+                    <div class="big" id="histTotalKg">0.0</div>
+                  </div>
+                  <div class="history-kpi">
+                    <div class="muted">Total event</div>
+                    <div class="big" id="histTotalEvents">0</div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                <canvas id="chartHistory" height="160"></canvas>
+              </div>
+            </article>
+          </section>
+
+          <section class="card">
+            <div class="card__head">
+              <div>
+                <div class="card__title">Tabel riwayat (contoh)</div>
+                <div class="card__subtitle">Rekap historis berdasarkan filter</div>
+              </div>
+            </div>
+            <div class="card__body">
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Kategori</th>
+                      <th>Total (kg)</th>
+                      <th>Event</th>
+                      <th>Catatan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- VIEW: PENGATURAN -->
+        <section class="view" id="view-pengaturan" data-view="pengaturan" aria-label="Pengaturan">
+          <section class="card">
+            <div class="card__head">
+              <div>
+                <div class="card__title">Pengaturan</div>
+                <div class="card__subtitle">Atur mode tampilan, ambang kapasitas, ambang gas, dan target harian</div>
+              </div>
+            </div>
+            <div class="card__body">
+              <form class="form" id="settingsForm">
+                <div class="settings-grid">
+                  <div class="field">
+                    <span class="field__label">Ambang kapasitas (%)</span>
+                    <div class="settings-row">
+                      <label class="field settings-inline">
+                        <span class="field__label">Hampir penuh</span>
+                        <input class="field__input" id="capAlmost" type="number" min="0" max="100" step="1" />
+                      </label>
+                      <label class="field settings-inline">
+                        <span class="field__label">Penuh</span>
+                        <input class="field__input" id="capFull" type="number" min="0" max="100" step="1" />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <span class="field__label">Gas organik (ppm)</span>
+                    <div class="settings-row">
+                      <label class="checkbox">
+                        <input id="gasEnabled" type="checkbox" />
+                        Aktifkan monitoring gas
+                      </label>
+                      <label class="field settings-inline">
+                        <span class="field__label">Ambang (ppm)</span>
+                        <input class="field__input" id="gasThreshold" type="number" min="0" step="1" />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <span class="field__label">Target harian (kg)</span>
+                    <input class="field__input" id="dailyTarget" type="number" min="0" step="1" />
+                  </div>
+
+                  <div class="field">
+                    <span class="field__label">Tampilan tabel event</span>
+                    <div class="settings-row">
+                      <label class="field settings-inline">
+                        <span class="field__label">Maks baris</span>
+                        <input class="field__input" id="maxEventsTable" type="number" min="5" max="100" step="1" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-actions">
+                  <button class="btn btn--primary" type="submit">Simpan</button>
+                  <button class="btn btn--ghost" id="btnSettingsReset" type="button">Reset</button>
+                  <span class="muted small" id="settingsStatus" aria-live="polite"></span>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- Pengaturan akun (prototype: disimpan di localStorage) -->
+          <section class="card" aria-label="Pengaturan akun">
+            <div class="card__head">
+              <div>
+                <div class="card__title">Akun</div>
+                <div class="card__subtitle">Ganti nama user dan kata sandi (tersimpan lokal di browser)</div>
+              </div>
+            </div>
+            <div class="card__body">
+              <form class="form" id="accountForm">
+                <div class="settings-grid">
+                  <div class="field">
+                    <span class="field__label">User aktif</span>
+                    <input class="field__input" id="accountCurrentUser" disabled />
+                  </div>
+
+                  <label class="field">
+                    <span class="field__label">Nama user baru (opsional)</span>
+                    <input class="field__input" id="accountUsernameNew" autocomplete="username" />
+                  </label>
+
+                  <label class="field">
+                    <span class="field__label">Password saat ini</span>
+                    <input class="field__input" id="accountPasswordCurrent" type="password" autocomplete="current-password" required />
+                  </label>
+
+                  <label class="field">
+                    <span class="field__label">Password baru (opsional)</span>
+                    <input class="field__input" id="accountPasswordNew" type="password" autocomplete="new-password" />
+                  </label>
+
+                  <label class="field">
+                    <span class="field__label">Konfirmasi password baru</span>
+                    <input class="field__input" id="accountPasswordConfirm" type="password" autocomplete="new-password" />
+                  </label>
+                </div>
+
+                <div class="settings-actions">
+                  <button class="btn btn--primary" type="submit">Simpan perubahan</button>
+                  <button class="btn btn--ghost" id="btnAccountReset" type="button" title="Kembalikan user demo dari file users.json">
+                    Reset akun
+                  </button>
+                  <span class="muted small" id="accountStatus" aria-live="polite"></span>
+                </div>
+
+                <div class="muted small">
+                  Catatan: setelah mengubah nama user / password, halaman akan dimuat ulang dan Anda perlu login kembali.
+                </div>
+              </form>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  <script>
+    // ── Webcam detection polling dari waste_detector.py
+    const DETECTOR_URL = 'http://localhost:5000';
+    const chipColors = { organik:'organik', logam:'logam', tekstil:'tekstil' };
+
+    function classOf(label) {
+      const l = label.toLowerCase();
+      if (l.includes('logam') || l.includes('metal')) return 'logam';
+      if (l.includes('tekstil') || l.includes('fabric') || l.includes('textile')) return 'tekstil';
+      if (l.includes('organik') || l.includes('organic')) return 'organik';
+      return 'other';
+    }
+
+    async function pollDetector() {
+      try {
+        const res  = await fetch(`${DETECTOR_URL}/api/status`, { signal: AbortSignal.timeout(2000) });
+        const data = await res.json();
+        const chips = document.getElementById('webcamChips');
+        const dot   = document.getElementById('webcamDot');
+        const txt   = document.getElementById('webcamStatusText');
+
+        dot.classList.remove('is-offline');
+        txt.textContent = `Live · ${data.fps} FPS`;
+
+        if (data.detections && data.detections.length > 0) {
+          chips.innerHTML = data.detections.map(d => {
+            const cls = classOf(d.label);
+            return `<span class="webcam-chip ${cls}">${d.label} ${(d.confidence*100).toFixed(0)}%</span>`;
+          }).join('');
+        } else {
+          chips.innerHTML = '<span class="muted" style="font-size:.75rem">Tidak ada objek terdeteksi</span>';
+        }
+      } catch {
+        document.getElementById('webcamDot').classList.add('is-offline');
+        document.getElementById('webcamStatusText').textContent = 'Offline';
+        document.getElementById('webcamChips').innerHTML = '<span class="muted" style="font-size:.75rem">Detektor tidak terhubung</span>';
+      }
+    }
+
+    // Poll setiap 500ms
+    setInterval(pollDetector, 500);
+    pollDetector();
+  </script>
+  </body>
+</html>

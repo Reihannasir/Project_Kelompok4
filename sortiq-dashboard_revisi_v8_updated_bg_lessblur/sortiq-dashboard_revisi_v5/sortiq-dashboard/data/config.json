@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "SortIQ",
+    "subtitle": "Farselion Hotel",
+    "sessionTtlMinutes": 480
+  },
+  "limits": {
+    "maxEventsTable": 20,
+    "maxEventsMemory": 60,
+    "maxAlertsMemory": 12
+  },
+  "categories": [
+    { "key": "organik", "label": "Organik", "color": "rgba(34,197,94,1)" },
+    { "key": "logam", "label": "Logam", "color": "rgba(100,116,139,1)" },
+    { "key": "tekstil", "label": "Tekstil", "color": "rgba(122,30,58,1)" }
+  ],
+  "thresholds": {
+    "capacity": { "almostFullPct": 60, "fullPct": 85 },
+    "gasPpm": { "enabled": true, "threshold": 320 }
+  },
+  "targets": {
+    "dailyKgTarget": 100
+  }
+}
